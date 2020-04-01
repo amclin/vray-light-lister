@@ -2,6 +2,12 @@
 -- Modified from the original 3DSMax Light Lister by Anthony McLin
 -- http://www.anthonymclin.com
 
+-- version 1.5
+-- August 13, 2007
+-- Added checkbox for Affect Reflections for VRay Lights
+-- Added checkbox for Shadows for VRay Lights
+-- Requires VRay 1.5 Final Release
+
 -- version 1.4
 -- February 27, 2007
 -- Added support for Vray Sun invisibility - this requires VRay 1.5rc3 or later
@@ -138,7 +144,7 @@ if LLister == undefined or debug == true do LLister = LightListerStruct()
 -- Strings for Localization
 
 LLister.decayStrings = #("None","Inverse","Inv. Square")
-LLister.VRayLightUnitStrings = #("Default (image)", "Luminous power (lm)", "Luminance (lm/mï¿½/sr)", "Radiant power (W)", "Radiance (W/mï¿½/sr)")
+LLister.VRayLightUnitStrings = #("Default (image)", "Luminous power (lm)", "Luminance (lm/m²/sr)", "Radiant power (W)", "Radiance (W/m²/sr)")
 LLister.LLUndoStr = "LightLister"
 
 -- End Strings
@@ -149,8 +155,7 @@ fn subtractFromArray myArray mySub =
 (
 	tmpArray = #()
 	for i in myArray do append tmpArray i
-	for i in mySub do
-	(
+	for i in mySub do	(
 		itemNo = finditem tmpArray i
 		local newArray = #()
 		if itemNo != 0 do
@@ -433,20 +438,23 @@ fn createLightRollout myCollection selectionOnly:false =
 		-- Added for VRayLight labels:
 		if isVRayLight do
 		(
-			LLister.maxLightsRC.addControl #label (lbname()) "Invisible" paramStr:" align:#left offset:[190,-18]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Double" paramStr:" align:#left offset:[240,-36]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Sided" paramStr:" align:#left offset:[243,0]"
-			LLister.maxLightsRC.addControl #label (lbname()) "No" paramStr:" align:#left offset:[297,-36]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Decay" paramStr:" align:#left offset:[290,0]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Skylight" paramStr:" align:#left offset:[330,-36]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Portal" paramStr:" align:#left offset:[335,0]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Store w/" paramStr:" align:#left offset:[380,-36]"
-			LLister.maxLightsRC.addControl #label (lbname()) "IRRMap" paramStr:" align:#left offset:[380,0]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Affect" paramStr:" align:#left offset:[440,-36]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Diffuse" paramStr:" align:#left offset:[438,0]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Affect" paramStr:" align:#left offset:[493,-36]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Specular" paramStr:" align:#left offset:[486,0]"
-			LLister.maxLightsRC.addControl #label (lbname()) "Units" paramStr:" align:#left offset:[540,-18]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Shdws." paramStr:" align:#left offset:[190,-18]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Invisible" paramStr:" align:#left offset:[228,-18]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Double" paramStr:" align:#left offset:[270,-36]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Sided" paramStr:" align:#left offset:[273,0]"
+			LLister.maxLightsRC.addControl #label (lbname()) "No" paramStr:" align:#left offset:[317,-36]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Decay" paramStr:" align:#left offset:[310,0]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Skylight" paramStr:" align:#left offset:[345,-36]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Portal" paramStr:" align:#left offset:[350,0]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Store w/" paramStr:" align:#left offset:[390,-36]"
+			LLister.maxLightsRC.addControl #label (lbname()) "IRRMap" paramStr:" align:#left offset:[388,0]"
+
+			LLister.maxLightsRC.addControl #label (lbname()) "Diffuse" paramStr:" align:#left offset:[436,-18]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Affect" paramStr:" align:#left offset:[473,-36]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Spec." paramStr:" align:#left offset:[473,0]"
+
+			LLister.maxLightsRC.addControl #label (lbname()) "Reflct." paramStr:" align:#left offset:[505,-18]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Units" paramStr:" align:#left offset:[560,-18]"
 			LLister.maxLightsRC.addControl #label (lbname()) "Sampling" paramStr:" align:#left offset:[660,-36]"
 			LLister.maxLightsRC.addControl #label (lbname()) "Subdivs" paramStr:" align:#left offset:[630,0]"
 			LLister.maxLightsRC.addControl #label (lbname()) "Shdw Bias" paramStr:" align:#left offset:[688,-18]"
@@ -761,55 +769,71 @@ fn createLightRollout myCollection selectionOnly:false =
 		if isVRayLight do
 		(
 		
+			-- Shadow On/Off
+			
+			LLister.maxLightsRC.addControl #checkbox (("LightShdOn" + LLister.count as string) as name) "" \
+				paramStr:("checked:" + (LLister.getLightProp LLister.LightIndex[LLister.count][1].baseObject #castshadows as string)+ " offset:[190,-21] width:15")
+			LLister.maxLightsRC.addHandler (("LightShdOn" + LLister.count as string) as name) #'changed state' filter:on \
+				codeStr:("LLister.setLightProp LLister.LightIndex[" + LLister.count as string + "][1].baseobject #castshadows state")
+			
+			append LLister.UIControlList[2][LLister.Count] (("LightShdOn" + LLister.count as string) as name)
+
 			-- Invisible checker
 			LLister.maxLightsRC.addControl #checkbox (("Invisible" + LLister.count as string) as name) "" \
-				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].invisible as string) + " offset:[200,-21]")
+				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].invisible as string) + " offset:[235,-20]")
 				
 			LLister.maxLightsRC.addHandler (("Invisible" + LLister.count as string) as name) #'changed state' filter:on \
 				codeStr:("LLister.LightIndex[" + LLister.count as string + "][1].invisible = state")
 
 			--  Double-Sided checker
 			LLister.maxLightsRC.addControl #checkbox (("DoubleSided" + LLister.count as string) as name) "" \
-				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].doubleSided as string) + " offset:[250,-20]")
+				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].doubleSided as string) + " offset:[280,-20]")
 				
 			LLister.maxLightsRC.addHandler (("DoubleSided" + LLister.count as string) as name) #'changed state' filter:on \
 				codeStr:("LLister.LightIndex[" + LLister.count as string + "][1].doubleSided = state")
 	
 			-- No decay checker
 			LLister.maxLightsRC.addControl #checkbox (("NoDecay" + LLister.count as string) as name) "" \
-				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].noDecay as string) + " offset:[298,-20]")
+				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].noDecay as string) + " offset:[317,-20]")
 				
 			LLister.maxLightsRC.addHandler (("NoDecay" + LLister.count as string) as name) #'changed state' filter:on \
 				codeStr:("LLister.LightIndex[" + LLister.count as string + "][1].noDecay = state")
 				
 			-- Skylight Portal checker
 			LLister.maxLightsRC.addControl #checkbox (("SkylightPortal" + LLister.count as string) as name) "" \
-				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].SkylightPortal as string) + " offset:[343,-20]")
+				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].SkylightPortal as string) + " offset:[358,-20]")
 				
 			LLister.maxLightsRC.addHandler (("SkylightPortal" + LLister.count as string) as name) #'changed state' filter:on \
 				codeStr:("LLister.LightIndex[" + LLister.count as string + "][1].SkylightPortal = state")
 
 			-- Store with Irridiance Map checker
 			LLister.maxLightsRC.addControl #checkbox (("storeWithIrradMap" + LLister.count as string) as name) "" \
-				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].storeWithIrradMap as string) + " offset:[392,-20]")
+				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].storeWithIrradMap as string) + " offset:[402,-20]")
 				
 			LLister.maxLightsRC.addHandler (("storeWithIrradMap" + LLister.count as string) as name) #'changed state' filter:on \
 				codeStr:("LLister.LightIndex[" + LLister.count as string + "][1].storeWithIrradMap = state")
 			
 			-- Affect Diffuse checker
 			LLister.maxLightsRC.addControl #checkbox (("affectDiffuse" + LLister.count as string) as name) "" \
-				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].affect_diffuse as string) + " offset:[447,-20]")
+				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].affect_diffuse as string) + " offset:[452,-20]")
 				
 			LLister.maxLightsRC.addHandler (("affectDiffuse" + LLister.count as string) as name) #'changed state' filter:on \
 				codeStr:("LLister.LightIndex[" + LLister.count as string + "][1].affect_diffuse = state")
 			
 			-- Affect Specular checker
 			LLister.maxLightsRC.addControl #checkbox (("affectSpecular" + LLister.count as string) as name) "" \
-				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].affect_specular as string) + " offset:[500,-20]")
+				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].affect_specular as string) + " offset:[480,-20]")
 				
 			LLister.maxLightsRC.addHandler (("affectSpecular" + LLister.count as string) as name) #'changed state' filter:on \
 				codeStr:("LLister.LightIndex[" + LLister.count as string + "][1].affect_specular = state")
+
+
+			-- Affect Reflections checker
+			LLister.maxLightsRC.addControl #checkbox (("affectReflections" + LLister.count as string) as name) "" \
+				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].affect_reflections as string) + " offset:[512,-20]")
 				
+			LLister.maxLightsRC.addHandler (("affectReflections" + LLister.count as string) as name) #'changed state' filter:on \
+				codeStr:("LLister.LightIndex[" + LLister.count as string + "][1].affect_reflections = state")
 				
 			
 			-- Units Type Selecter

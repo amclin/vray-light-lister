@@ -1,4 +1,16 @@
 
+## 1.5.0 (2007-08-13)
+
+### Features
+
+* Added checkbox for Affect Reflections for VRay Lights
+* Added checkbox for Shadows for VRay Lights
+
+### BREAKING CHANGES
+
+* Now requires VRay `1.5 Final Release`
+* Now requires 3DStudio Max `7`
+
 ## 1.4.0 (2007-02-27)
 
 ### Features
