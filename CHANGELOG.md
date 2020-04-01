@@ -1,3 +1,11 @@
+
+## 1.3.0 (2006-09-01)
+
+### Features
+
+* Condensed Layout for more efficiency
+* Add support for Subdivisions and Shadow Bias for VRay Lights
+
 ## 1.2.0 (2006-08-25)
 
 ### Features
