@@ -1,6 +1,13 @@
 -- VRay Extended Light Lister
 -- Modified from the original 3DSMax Light Lister by Anthony McLin
 -- http://www.anthonymclin.com
+
+-- version 1.4
+-- February 27, 2007
+-- Added support for Vray Sun invisibility - this requires VRay 1.5rc3 or later
+-- Verified compatibility with Max 9 32bit and 64bit
+
+
 -- version 1.3
 -- September 1, 2006
 -- Condensed Layout for more efficiency
@@ -131,7 +138,7 @@ if LLister == undefined or debug == true do LLister = LightListerStruct()
 -- Strings for Localization
 
 LLister.decayStrings = #("None","Inverse","Inv. Square")
-LLister.VRayLightUnitStrings = #("Default (image)", "Luminous power (lm)", "Luminance (lm/m²/sr)", "Radiant power (W)", "Radiance (W/m²/sr)")
+LLister.VRayLightUnitStrings = #("Default (image)", "Luminous power (lm)", "Luminance (lm/mï¿½/sr)", "Radiant power (W)", "Radiance (W/mï¿½/sr)")
 LLister.LLUndoStr = "LightLister"
 
 -- End Strings
@@ -142,7 +149,8 @@ fn subtractFromArray myArray mySub =
 (
 	tmpArray = #()
 	for i in myArray do append tmpArray i
-	for i in mySub do	(
+	for i in mySub do
+	(
 		itemNo = finditem tmpArray i
 		local newArray = #()
 		if itemNo != 0 do
@@ -419,6 +427,7 @@ fn createLightRollout myCollection selectionOnly:false =
 			LLister.maxLightsRC.addControl #label (lbname()) "Shadow Subdivisions" paramStr:" align:#left offset:[360,-18]"
 			LLister.maxLightsRC.addControl #label (lbname()) "Shadow Bias" paramStr:" align:#left offset:[480,-18]"
 			LLister.maxLightsRC.addControl #label (lbname()) "Photon Emit Radius" paramStr:" align:#left offset:[560,-18]"
+			LLister.maxLightsRC.addControl #label (lbname()) "Invisible" paramStr:" align:#left offset:[668,-18]"
 		)
 		
 		-- Added for VRayLight labels:
@@ -926,8 +935,15 @@ fn createLightRollout myCollection selectionOnly:false =
 			LLister.maxLightsRC.addHandler (("SunPhotonEmitRadius" + LLister.count as string) as name) #'changed val' filter:on \
 				codeStr:("LLister.SetLightProp LLister.LightIndex[" + LLister.count as string + "][1] #photon_emit_radius val ")
 			append LLister.UIControlList[2][LLister.Count] (("SunPhotonEmitRadius" + LLister.count as string) as name)
-		)
 
+			-- Invisible checker
+			LLister.maxLightsRC.addControl #checkbox (("Invisible" + LLister.count as string) as name) "" \
+				paramStr:(" checked:" + (LLister.LightIndex[LLister.count][1].invisible as string) + " offset:[678,-20]")
+				
+			LLister.maxLightsRC.addHandler (("Invisible" + LLister.count as string) as name) #'changed state' filter:on \
+				codeStr:("LLister.LightIndex[" + LLister.count as string + "][1].invisible = state")
+
+		)
 
 
 		

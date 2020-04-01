@@ -1,4 +1,14 @@
 
+## 1.4.0 (2007-02-27)
+
+### Features
+* Added support for Vray Sun invisibility
+* Verified compatibility with Max 9 32bit and Max 9 64bit
+
+### BREAKING CHANGES
+
+* Now requires VRay `1.5rc3` or later
+
 ## 1.3.0 (2006-09-01)
 
 ### Features
